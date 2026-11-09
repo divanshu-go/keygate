@@ -1086,6 +1086,13 @@ type MeteredBilling struct {
 	Attempts  int       `bun:",notnull,default:0" json:"attempts"`
 	LastError string    `bun:",notnull,default:''" json:"last_error,omitempty"`
 	CreatedAt time.Time `bun:",nullzero,default:now()" json:"created_at"`
+	// StripeMeterEventName and StripeCustomerID are frozen at enqueue
+	// time so a later entitlement change cannot redirect accepted usage
+	// to a different meter or discard it. Empty for rows written before
+	// this migration; the syncer falls back to re-resolving from the
+	// current license for those.
+	StripeMeterEventName string `bun:",notnull,default:''" json:"stripe_meter_event_name,omitempty"`
+	StripeCustomerID     string `bun:",notnull,default:''" json:"stripe_customer_id,omitempty"`
 }
 
 // Webhook event constants

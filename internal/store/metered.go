@@ -56,18 +56,26 @@ func (s *Store) TryMeteredSyncLock(ctx context.Context) (release func(), ok bool
 // by MeteredBillingSync. quantity is the DELTA from this single
 // usage call (not the cumulative total).
 //
+// stripeMeterEventName and stripeCustomerID are frozen at enqueue
+// time so a later entitlement change cannot redirect accepted usage
+// to a different meter or discard it before sync. Pass empty strings
+// for rows written by older callers; the syncer falls back to
+// re-resolving from the current license for those.
+//
 // The identifier is the row's ID — opaque to callers, used as the
 // Stripe meter event's identifier so retries dedupe within Stripe's
 // rolling 24h window.
-func (s *Store) InsertMeteredEvent(ctx context.Context, licenseID, feature, periodKey string, quantity int64) error {
+func (s *Store) InsertMeteredEvent(ctx context.Context, licenseID, feature, periodKey string, quantity int64, stripeMeterEventName, stripeCustomerID string) error {
 	id := newID()
 	m := &model.MeteredBilling{
-		ID:         id,
-		LicenseID:  licenseID,
-		Feature:    feature,
-		Quantity:   quantity,
-		PeriodKey:  periodKey,
-		Identifier: id,
+		ID:                    id,
+		LicenseID:             licenseID,
+		Feature:               feature,
+		Quantity:              quantity,
+		PeriodKey:             periodKey,
+		Identifier:            id,
+		StripeMeterEventName:  stripeMeterEventName,
+		StripeCustomerID:      stripeCustomerID,
 	}
 	_, err := s.DB.NewInsert().Model(m).Exec(ctx)
 	return err
